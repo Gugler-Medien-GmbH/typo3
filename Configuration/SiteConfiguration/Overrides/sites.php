@@ -1,7 +1,9 @@
 <?php
 
+use CaptchaEU\Typo3\Configuration;
+
 call_user_func(
-	static function() {
+	static function(): void {
 		$lll = 'LLL:EXT:captchaeu_typo3/Resources/Private/Language/locallang.xlf:';
 
 		// Public Key
@@ -29,8 +31,8 @@ call_user_func(
 			'label' => $lll . 'site.configuration.host',
 			'config' => [
 				'type' => 'input',
-				'placeholder' => \CaptchaEU\Typo3\Configuration::HOST_DEFAULT,
-				'default' => \CaptchaEU\Typo3\Configuration::HOST_DEFAULT,
+				'placeholder' => Configuration::HOST_DEFAULT,
+				'default' => Configuration::HOST_DEFAULT,
 				'eval' => 'required'
 			],
 		];

@@ -4,138 +4,135 @@ declare(strict_types=1);
 
 namespace CaptchaEU\Typo3;
 
-use TYPO3\CMS\Core\Site\Entity\Site;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
 class ModifyConfigValueEvent
 {
-    private string $value;
-    private string $property;
+  public function __construct(
+    private string $value,
+    private string $property
+  )
+  {
+  }
 
-    public function __construct(string $value, string $property)
-    {
-        $this->value = $value;
-        $this->property = $property;
-    }
+  public function getValue(): string
+  {
+    return $this->value;
+  }
 
-    public function getValue(): string 
-    {
-        return $this->value;
-    }
+  public function setValue(string $value): void
+  {
+    $this->value = $value;
+  }
 
-	public function setValue(string $value): void
-    {
-        $this->value = $value;
-    }
-
-    public function getProperty(): string
-    {
-        return $this->property;
-    }
+  public function getProperty(): string
+  {
+    return $this->property;
+  }
 }
 
 class Configuration
 {
-	// defaults
-	public const HOST_DEFAULT = 'https://www.captcha.eu';
+  // defaults
+  public const HOST_DEFAULT = 'https://www.captcha.eu';
 
-	// host
-	protected string $host = '';
+  // host
+  protected string $host = '';
 
-	// keys
-	protected string $keyPublic = '';
-	protected string $keyREST = '';
-	private ?EventDispatcherInterface $eventDispatcher;
-	private ?ServerRequestInterface $request;
+  // keys
+  protected string $keyPublic = '';
 
-	// endpoints
-	protected const EP_VALIDATE = '/validate';
+  protected string $keyREST = '';
+  private ?ServerRequestInterface $request;
 
-	public function __construct(?ServerRequestInterface $request = null, ?EventDispatcherInterface $eventDispatcher = null)
-	{
-		$this->eventDispatcher = $eventDispatcher;
-		$this->request = $request ?? ($GLOBALS['TYPO3_REQUEST'] ?? null);
+  // endpoints
+  protected const EP_VALIDATE = '/validate';
 
-		if ($this->request === null) {
-			return;
-		}
+  public function __construct(
+    ?ServerRequestInterface $request = null,
+    private ?EventDispatcherInterface $eventDispatcher = null)
+  {
+    $this->request = $request ?? ($GLOBALS['TYPO3_REQUEST'] ?? null);
 
-		$site = $this->request->getAttribute('site');
-
-		if ($site === null) {
-			return;
-		}
-
-		// preview/NullSite
-		if(!method_exists($site, 'getConfiguration')) {
-			return;
-		}
-
-		// get site config
-		$siteConfiguration = $site->getConfiguration();
-
-		// assign values from site configuration
-		$this->host = trim($siteConfiguration['captchaeu_host'] ?? '');
-		$this->keyPublic = trim($siteConfiguration['captchaeu_key_public'] ?? '');
-		$this->keyREST = trim($siteConfiguration['captchaeu_key_rest'] ?? '');
-		if ($this->eventDispatcher !== null) {
-            $this->host = $this->dispatchValueEvent($this->host, 'host');
-            $this->keyPublic = $this->dispatchValueEvent($this->keyPublic, 'keyPublic');
-            $this->keyREST = $this->dispatchValueEvent($this->keyREST, 'keyREST');
-        }
-	}
-
-	protected function dispatchValueEvent(string $value, string $property): string
-    {
-        if ($this->eventDispatcher === null) {
-            return $value;
-        }
-        
-        $event = new ModifyConfigValueEvent($value, $property);
-        $event = $this->eventDispatcher->dispatch($event);
-        return $event->getValue();
+    if (!$this->request instanceof ServerRequestInterface) {
+      return;
     }
 
-	// make sure the essential settings are set
-	public function isEnabled(): bool
-	{
-		// check if keys are set
-		$keysSet = $this->keyPublic !== '' && $this->keyREST !== '';
+    $site = $this->request->getAttribute('site');
 
-		return $keysSet;
-	}
+    if ($site === null) {
+      return;
+    }
 
-	// get public key
-	public function getKeyPublic(): string
-	{
-		return $this->keyPublic;
-	}
+    // preview/NullSite
+    if (!method_exists($site, 'getConfiguration')) {
+      return;
+    }
 
-	// get rest key
-	public function getKeyREST(): string
-	{
-		return $this->keyREST;
-	}
+    // get site config
+    $siteConfiguration = $site->getConfiguration();
 
-	// get validation endpoint
-	public function getEPValidate(): string
-	{
-		return $this->getHost() . self::EP_VALIDATE;
-	}
+    // assign values from site configuration
+    $this->host = trim($siteConfiguration['captchaeu_host'] ?? '');
+    $this->keyPublic = trim($siteConfiguration['captchaeu_key_public'] ?? '');
+    $this->keyREST = trim($siteConfiguration['captchaeu_key_rest'] ?? '');
+    if ($this->eventDispatcher instanceof EventDispatcherInterface) {
+      $this->host = $this->dispatchValueEvent($this->host, 'host');
+      $this->keyPublic = $this->dispatchValueEvent($this->keyPublic, 'keyPublic');
+      $this->keyREST = $this->dispatchValueEvent($this->keyREST, 'keyREST');
+    }
+  }
 
-	// get service host
-	public function getHost(): string
-	{
-		// config or default
-		return $this->host ?: self::HOST_DEFAULT;
-	}
+  protected function dispatchValueEvent(string $value, string $property): string
+  {
+    if (!$this->eventDispatcher instanceof EventDispatcherInterface) {
+      return $value;
+    }
 
-	// sdk.js path with config host
-	public function getSDKJSPath(): string
-	{
-		// return sdk path with configured host
-		return $this->getHost() . '/sdk.js';
-	}
+    $event = new ModifyConfigValueEvent($value, $property);
+    $event = $this->eventDispatcher->dispatch($event);
+    return $event->getValue();
+  }
+
+  // make sure the essential settings are set
+  public function isEnabled(): bool
+  {
+    // check if keys are set
+    $keysSet = $this->keyPublic !== '' && $this->keyREST !== '';
+
+    return $keysSet;
+  }
+
+  // get public key
+  public function getKeyPublic(): string
+  {
+    return $this->keyPublic;
+  }
+
+  // get rest key
+  public function getKeyREST(): string
+  {
+    return $this->keyREST;
+  }
+
+  // get validation endpoint
+  public function getEPValidate(): string
+  {
+    return $this->getHost() . self::EP_VALIDATE;
+  }
+
+  // get service host
+  public function getHost(): string
+  {
+    // config or default
+    return $this->host ?: self::HOST_DEFAULT;
+  }
+
+  // sdk.js path with config host
+  public function getSDKJSPath(): string
+  {
+    // return sdk path with configured host
+    return $this->getHost() . '/sdk.js';
+  }
 }

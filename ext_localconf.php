@@ -1,21 +1,26 @@
 <?php
 
-defined('TYPO3') or die();
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Imaging\IconRegistry;
+use TYPO3\CMS\Core\Imaging\IconProvider\SvgIconProvider;
+use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 
-$iconRegistry = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(
-    \TYPO3\CMS\Core\Imaging\IconRegistry::class
+defined('TYPO3') || die();
+
+$iconRegistry = GeneralUtility::makeInstance(
+    IconRegistry::class
 );
 
 $iconRegistry->registerIcon(
     'captchaeu-icon',
-    \TYPO3\CMS\Core\Imaging\IconProvider\SvgIconProvider::class,
+    SvgIconProvider::class,
     [
         'source' => 'EXT:captchaeu_typo3/Resources/Public/Icons/captchaeu-icon.svg'
     ]
 );
 
-call_user_func(function() {
-    \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addTypoScriptSetup(
+call_user_func(function(): void {
+    ExtensionManagementUtility::addTypoScriptSetup(
         trim('
         plugin.tx_form.settings.yamlConfigurations {
             100 = EXT:captchaeu_typo3/Configuration/Form/CaptchaEUFormSetup.yaml
